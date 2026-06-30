@@ -80,7 +80,15 @@ For each PDF in the input folder:
 
 9. **Build `preview.html`** from `templates/preview_shell.html`:
    - Look up the accent color: `notes.json` entry's `color` name resolved against `references/color-themes.json`, default `deep_blue`.
-   - Convert `article.md` into the inner HTML: paragraphs as `<p>`, section headings as `<h1>`, bolded key terms as `<strong class="accent">`. For each figure, emit a `<div class="fig-marker">图N：figures/figN.ext（手动拖拽到秀米中此处）<img src="figures/figN.ext"></div>` — the image shows in the local preview, but only the marker text survives copy-paste, so keep the marker text itself short and exact about which file to drop in.
+   - Convert `article.md` into the inner HTML: paragraphs as `<p>`, section headings as `<h1>`, bolded key terms as `<strong class="accent">`. For each figure, the markdown is `![图N 简述](figures/figN.ext)` followed by a `**图N** 说明...` line — combine both into one block:
+     ```html
+     <div class="fig-marker">
+       <div class="fig-marker-note">图N：figures/figN.ext（手动拖拽到秀米中此处）</div>
+       <img src="figures/figN.ext">
+       <div class="fig-caption">图N 说明文字（不带"图N"加粗前缀，整句作为图说）</div>
+     </div>
+     ```
+     The caption sits centered and bold directly under the image, like a normal published figure caption — it is not a left-aligned flowing paragraph and not bundled into the next `<p>`. Only `.fig-marker-note` (small, gray) is the manual-drag reminder; `.fig-caption` is the real caption and should read as a complete sentence on its own.
    - Replace `{{TITLE}}`, `{{ACCENT_COLOR}}`, `{{ARTICLE_HTML}}` in the template and write the result to `<output_dir>/preview.html`.
 
 10. **QA the preview**: try to render `preview.html` to a screenshot for a visual sanity check before reporting done. Look for a local Chrome/Edge binary (e.g. `C:\Program Files\Google\Chrome\Application\chrome.exe`, `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`) and run:
