@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>{{TITLE}}</title>
+<style>
+  body { background: #f2f2f2; margin: 0; padding: 24px; font-family: -apple-system, "Microsoft YaHei", sans-serif; }
+  .toolbar { max-width: 680px; margin: 0 auto 16px auto; display: flex; gap: 12px; align-items: center; }
+  .toolbar button {
+    background: {{ACCENT_COLOR}}; color: #fff; border: none; border-radius: 6px;
+    padding: 10px 18px; font-size: 14px; cursor: pointer;
+  }
+  .toolbar button:hover { opacity: 0.85; }
+  .note { font-size: 12px; color: #888; }
+  .canvas {
+    max-width: 680px; margin: 0 auto; background: #fff; padding: 24px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.08);
+  }
+  .fig-marker {
+    display: block; margin: 8px 0; padding: 8px 12px; background: #fafafa;
+    border: 1px dashed #bbb; border-radius: 4px; font-size: 13px; color: #999;
+  }
+  .fig-marker img { display: block; max-width: 100%; margin-top: 8px; border-radius: 4px; }
+  #copy-source p { font-size: 16px; line-height: 1.75; color: #333; margin: 0 0 16px 0; }
+  #copy-source h1 { font-size: 18px; color: {{ACCENT_COLOR}}; margin: 24px 0 12px 0; }
+  #copy-source strong.accent { color: {{ACCENT_COLOR}}; font-weight: bold; }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <button id="copy-btn" onclick="copyRich()">复制正文（可直接粘贴进秀米/公众号编辑器）</button>
+    <span class="note">图片不会随复制带过去，按文中标记手动拖拽 figures/ 里对应图片到秀米即可</span>
+  </div>
+  <div class="canvas" id="copy-source">
+{{ARTICLE_HTML}}
+  </div>
+
+<script>
+function copyRich() {
+  var el = document.getElementById('copy-source');
+  var range = document.createRange();
+  range.selectNodeContents(el);
+  var sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  try {
+    document.execCommand('copy');
+    var btn = document.getElementById('copy-btn');
+    var original = btn.textContent;
+    btn.textContent = '已复制 ✓';
+    setTimeout(function () { btn.textContent = original; }, 1500);
+  } catch (e) {
+    alert('复制失败，请手动框选正文后用 Ctrl+C 复制：' + e);
+  }
+  sel.removeAllRanges();
+}
+</script>
+</body>
+</html>
