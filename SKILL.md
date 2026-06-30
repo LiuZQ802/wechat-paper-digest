@@ -11,7 +11,7 @@ Turns a folder of paper PDFs into ready-to-paste WeChat "论文荐读" (paper re
 
 Two-stage pipeline: (1) deterministic asset extraction via a script (no judgment calls), (2) content synthesis and figure curation done by reading the extracted text/context (judgment calls — what to say, which figures matter, where they go, how to organize sections).
 
-Read `references/format-rules.md` before generating the first article in a session — it is the full formatting spec this skill follows. Read `references/pdf-engines.md` before the first extraction — it explains the two extraction engines and when each applies.
+Read `references/format-rules.md` before generating the first article in a session — it is the full formatting spec this skill follows. Read `references/pdf-engines.md` before the first extraction — it explains the two extraction engines and when each applies. Read `references/writing-style.md` before writing the first `article.md` — it's the standard content must meet: specific enough that a reader never has to guess what a sentence means.
 
 ## Hard Constraint
 
@@ -32,10 +32,14 @@ papers/                     <- folder the user points me at
   paper2.pdf
 ```
 
-- `engine.json` picks the extraction engine for the whole batch (see `references/pdf-engines.md`). No file → `pymupdf` (local, no setup). `"mineru_api"` → calls the hosted MinerU API; needs a token (env var `MINERU_API_TOKEN` or `mineru_api_token` in this file) — if missing, tell the user how to get one rather than silently falling back.
+- `engine.json` picks the extraction engine for the whole batch (see `references/pdf-engines.md`). `"mineru_api"` → calls the hosted MinerU API; needs a token (env var `MINERU_API_TOKEN` or `mineru_api_token` in this file) — if missing, tell the user how to get one rather than silently falling back.
 - `authors.json` is the "own lab" roster. If a paper's author list has any match, treat it as an own-group paper.
 - `notes.json` keys are PDF filenames. Any field not given falls back to default (`color: deep_blue`, focus auto-derived from the abstract, `is_own_group` auto-detected via `authors.json`).
-- If `papers/` has none of these files, proceed with defaults (`pymupdf` engine, no author bios) — don't ask the user to create them unless they want those features.
+- If `papers/` has no `authors.json`/`notes.json`, proceed with defaults (no author bios, default color) — don't ask the user to create them unless they want those features. **`engine.json` is different: don't default it silently.**
+
+## Step 0: Pick the Extraction Engine (once per `papers/` folder)
+
+Before processing any PDF, check for `papers/engine.json`. If it exists, use what it says. If it doesn't exist, **ask the user** with `AskUserQuestion` — pymupdf (local, no setup, misses vector-drawn figures) vs MinerU (hosted API, needs a token, catches vector figures and gives reading-order context) — see `references/pdf-engines.md` for the trade-off to summarize in the question. Once they answer, write `{"engine": "<their choice>"}` to `papers/engine.json` (plus `mineru_api_token` if they give one) so this isn't asked again for this folder. Only re-ask if the user later asks to change engines or deletes the file.
 
 ## Workflow
 
@@ -61,9 +65,9 @@ For each PDF in the input folder:
 
 5. **Pick figures and where they go**: using whichever figure source step 1 produced, pick 2-4 images that the surrounding text plausibly references as a meaningful method/result figure ("Figure N", "Fig. N", "图N", or a clear caption nearby). Skip logos/icons/decorative banners. For each pick, you should be able to point to the specific sentence that justifies both *that this figure matters* and *where in the article it belongs*. If you can't, that's the ambiguous case in "Don't Guess When Unsure" — surface it instead of placing it anyway. Copy chosen files from the figure source into `<output_dir>/figures/`, renamed `fig1.<ext>`, `fig2.<ext>`, etc., **keeping the original file extension** (pymupdf figures are often actually JPEG even though they came from a PDF — check, don't assume `.png`).
 
-6. **Write `article.md`**: organize using the structure in `references/format-rules.md`'s "输出结构参考". Pick whichever of 研究背景/科学问题/方法/结论 actually have content to support them — don't force all four, but don't go thin either: each chosen section needs at least 2 substantive paragraphs with concrete numbers/comparisons/examples from the paper, not a one-line abstract restatement (see rule 6 in format-rules.md — thin content is a defect, not a style choice). If the paper has a qualitative case/example table (e.g. "here's a case where baseline methods got it wrong and our method didn't"), that's exactly the kind of concrete material to include — it reads far better than abstract method description. Section headings are self-written and can be lively/evocative, not literal labels. Bold the key terms (`**word**`) — these become the colored-highlight spots in the HTML preview. Insert figures using `![图N 图说](figures/figN.ext)` at the point they're discussed. Include the "本文引用信息" section (rule 7: this paper's *own* formal citation — authors, year, title, venue, volume/issue/pages, DOI — not a pick from the paper's internal bibliography). Include an author-bio section only if step 4 found a match — format each line `**姓名** 单位　职称`, pulling affiliation/title from `authors.json`.
+6. **Write `article.md`**: organize using the structure in `references/format-rules.md`'s "输出结构参考". Pick whichever of 研究背景/科学问题/方法/结论 actually have content to support them — don't force all four, but don't go thin either: each chosen section needs at least 2 substantive paragraphs with concrete numbers/comparisons/examples from the paper, not a one-line abstract restatement (see rule 6 in format-rules.md — thin content is a defect, not a style choice). If the paper has a qualitative case/example table (e.g. "here's a case where baseline methods got it wrong and our method didn't"), that's exactly the kind of concrete material to include — it reads far better than abstract method description. Write every sentence to the standard in `references/writing-style.md`: specific enough that the reader never has to guess what it means — no "显著提升/有效解决/具有重要意义" floating without a number or concrete fact attached. Section headings are self-written and can be lively/evocative, not literal labels. Bold the key terms (`**word**`) — these become the colored-highlight spots in the HTML preview. Insert figures using `![图N 图说](figures/figN.ext)` at the point they're discussed. Include the "本文引用信息" section (rule 7: this paper's *own* formal citation — authors, year, title, venue, volume/issue/pages, DOI — not a pick from the paper's internal bibliography). Include an author-bio section only if step 4 found a match — format each line `**姓名** 单位　职称`, pulling affiliation/title from `authors.json`.
 
-7. **Self-check `article.md`**: confirm it contains none of the literal rule text from `references/format-rules.md` and no "专题：论文荐读" label. Confirm the "本文引用信息" section cites the featured paper itself, not papers from its bibliography. If either check fails, rewrite that part.
+7. **Self-check `article.md`**: confirm it contains none of the literal rule text from `references/format-rules.md` and no "专题：论文荐读" label. Confirm the "本文引用信息" section cites the featured paper itself, not papers from its bibliography. Then do a vagueness pass per `references/writing-style.md`: read every sentence and ask "if I deleted this, what specific information would the reader lose?" — any sentence whose answer is "nothing, it's just a mood word" needs a concrete number/fact added or needs to go. If any check fails, rewrite that part.
 
 8. **Write `meta.md`**: suggested title `文献荐读 | <短标题>`, a one-to-two sentence suggested share summary, and a note on whether a cover-card image is warranted (default: leave blank, per the rules the publisher applies a shared template when blank).
 
@@ -93,6 +97,7 @@ A paper's output is done only when:
 - the cover page actually shows journal+title+institution+authors together (not a publisher landing page missing affiliations)
 - every figure referenced in `article.md` exists in `figures/` with the correct extension, and each placement is backed by a specific sentence in the source text (not a guess)
 - each research section has at least 2 substantive, concrete paragraphs — not single-line abstractions
+- no sentence relies on an unanchored vague qualifier (显著/有效/一定程度上/良好/重要意义) without a number or specific fact next to it (`references/writing-style.md`)
 - "本文引用信息" cites the featured paper itself (with DOI), not an entry from its internal bibliography
 - `meta.md` has a `文献荐读 | xxx` title and a non-empty share summary
 - `preview.html` opens in a browser showing the accent color, 16px body / 18px headings, and a working copy button
