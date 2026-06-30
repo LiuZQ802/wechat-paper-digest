@@ -53,8 +53,9 @@ For each PDF in the input folder:
 
    If `engine.json` says `mineru_api`, additionally run:
    ```bash
-   python <skill_dir>/scripts/mineru_extract.py <pdf_path> <output_dir>
+   python <skill_dir>/scripts/mineru_extract.py <pdf_path> <output_dir> --engine-config <path to papers/engine.json>
    ```
+   Always pass `--engine-config` pointing at the actual `engine.json` you read in Step 0 — don't rely on the script to guess its location.
    and use its `mineru/` output (images in original reading order) as the figure source instead of `figures_raw/`/`manifest.json` for step 4. If this call fails (bad token, timeout, API error), tell the user what happened and fall back to the `pymupdf` figures for this paper rather than aborting the batch.
 
 2. **Pick the cover page**: read the per-page text in `text.txt` for each page in `cover_candidates/`. Skip any page that reads like a publisher landing page (telltale phrases: "To cite this article", "View related articles", "Crossmark", "Submit your article") *unless* it's the only candidate that has journal+title+authors — affiliations ("学校") are the field most often missing from these landing pages, so prefer whichever candidate page has all four. Copy the chosen one to `<output_dir>/cover.png`. If no single page covers all four, or two pages are both plausible, ask the user which to use (see "Don't Guess When Unsure").

@@ -20,7 +20,7 @@ No file, or `engine` missing/`"pymupdf"` → use the `pymupdf` engine. `"mineru_
 
 **Setup required** — tell the user if missing, don't guess or skip silently:
 1. An API token from mineru.net (account → API management page → create token).
-2. The token available as either the `MINERU_API_TOKEN` environment variable, or a `mineru_api_token` field in `papers/engine.json`.
+2. The token available as either the `MINERU_API_TOKEN` environment variable, or a `mineru_api_token` field in `papers/engine.json` — in which case **pass `--engine-config <path to that engine.json>`** when invoking the script (it does not search for the file on its own; it only checks `--token`, then `MINERU_API_TOKEN`, then `--engine-config` if given).
 
 **What it does** (see the script for the exact HTTP calls):
 1. `POST /api/v4/file-urls/batch` with the file name → get a pre-signed upload URL + `batch_id`.

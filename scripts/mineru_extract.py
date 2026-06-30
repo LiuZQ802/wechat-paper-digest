@@ -7,12 +7,13 @@ graphics, and returns content in original reading order — which makes
 figure-to-paragraph placement far more reliable.
 
 Requires an API token: see references/pdf-engines.md for how to obtain one.
-Pass it via --token, the MINERU_API_TOKEN env var, or a "mineru_api_token"
-field in papers/engine.json.
+Pass it via --token, the MINERU_API_TOKEN env var, or --engine-config pointing
+at the input folder's engine.json (read for its "mineru_api_token" field).
 
 Usage:
-    python mineru_extract.py <pdf_path> <output_dir> [--token TOKEN] [--model-version pipeline]
-                              [--poll-interval 5] [--timeout 600]
+    python mineru_extract.py <pdf_path> <output_dir> [--token TOKEN]
+                              [--engine-config path/to/papers/engine.json]
+                              [--model-version pipeline] [--poll-interval 5] [--timeout 600]
 
 Writes into <output_dir>/mineru/:
     the unzipped MinerU result (markdown + content_list.json + images/)
@@ -75,22 +76,21 @@ def download_and_unzip(zip_url: str, output_dir: str) -> str:
     return mineru_dir
 
 
-def resolve_token(cli_token: str | None, output_dir: str) -> str:
+def resolve_token(cli_token: str | None, engine_config_path: str | None) -> str:
     if cli_token:
         return cli_token
     env_token = os.environ.get("MINERU_API_TOKEN")
     if env_token:
         return env_token
-    engine_config = os.path.join(os.path.dirname(output_dir.rstrip("/\\")) or ".", "engine.json")
-    for candidate in (engine_config, "papers/engine.json"):
-        if os.path.isfile(candidate):
-            with open(candidate, encoding="utf-8") as f:
-                cfg = json.load(f)
-            if cfg.get("mineru_api_token"):
-                return cfg["mineru_api_token"]
+    if engine_config_path and os.path.isfile(engine_config_path):
+        with open(engine_config_path, encoding="utf-8") as f:
+            cfg = json.load(f)
+        if cfg.get("mineru_api_token"):
+            return cfg["mineru_api_token"]
     raise RuntimeError(
-        "No MinerU API token found. Set MINERU_API_TOKEN, pass --token, or add "
-        '"mineru_api_token" to papers/engine.json. See references/pdf-engines.md.'
+        "No MinerU API token found. Set MINERU_API_TOKEN, pass --token, or pass "
+        "--engine-config pointing at the input folder's engine.json "
+        '(must contain "mineru_api_token"). See references/pdf-engines.md.'
     )
 
 
@@ -99,6 +99,9 @@ def main():
     parser.add_argument("pdf_path")
     parser.add_argument("output_dir")
     parser.add_argument("--token", default=None)
+    parser.add_argument("--engine-config", default=None,
+                         help="Path to the input folder's engine.json, used to read "
+                              "mineru_api_token if --token and MINERU_API_TOKEN are both unset.")
     parser.add_argument("--model-version", default="pipeline")
     parser.add_argument("--poll-interval", type=int, default=5)
     parser.add_argument("--timeout", type=int, default=600)
@@ -108,7 +111,7 @@ def main():
         print(f"error: pdf not found: {args.pdf_path}", file=sys.stderr)
         sys.exit(1)
 
-    token = resolve_token(args.token, args.output_dir)
+    token = resolve_token(args.token, args.engine_config)
     filename = os.path.basename(args.pdf_path)
 
     batch_id, upload_url = request_upload_url(token, filename, args.model_version)
